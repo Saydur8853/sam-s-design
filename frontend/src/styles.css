@@ -288,8 +288,10 @@ app-protected-artwork, .protected-artwork-wrap { position: relative; width: 100%
 .checkout-product img { width: 70px; height: 88px; object-fit: cover; background: var(--paper); }
 .checkout-product strong, .checkout-product small { display: block; }
 .checkout-product small { margin-top: 5px; color: var(--subtle); font-size: 10px; }
-.checkout-total { display: flex; justify-content: space-between; align-items: baseline; margin: 25px 0; }
+.checkout-total { display: flex; justify-content: space-between; align-items: baseline; margin: 25px 0 16px; }
 .checkout-total strong { font-family: 'DM Sans', sans-serif; font-size: 31px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: lining-nums tabular-nums; }
+.payment-method-badges { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+.payment-method-badges span { padding: 5px 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; color: var(--muted); }
 .payment-result { min-height: 70vh; padding: 90px clamp(22px, 14vw, 220px); text-align: center; }
 .payment-result h1 { font-size: clamp(55px, 8vw, 105px); line-height: .88; letter-spacing: -.065em; }
 .success-mark { width: 58px; height: 58px; display: grid; margin: 0 auto 24px; place-items: center; color: var(--ink-dark); background: var(--lime); border-radius: 50%; font-size: 25px; font-weight: 800; }
