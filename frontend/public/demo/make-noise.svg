@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#c8f257"/><path d="M0 130L800 0V300L0 430ZM0 620L800 490V760L0 890Z" fill="#ff5b35"/>
+  <text x="400" y="405" text-anchor="middle" font-family="Arial" font-weight="900" font-size="150" transform="rotate(-8 400 405)">MAKE</text><text x="400" y="665" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="900" font-size="165" transform="rotate(-8 400 665)">NOISE</text>
+</svg>

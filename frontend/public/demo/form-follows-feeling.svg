@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#ff6746"/><circle cx="620" cy="180" r="190" fill="#f4eddf"/>
+  <path d="M0 710L800 390V1000H0Z" fill="#171714"/><text x="60" y="170" font-family="Arial" font-size="25" letter-spacing="8">DESIGN / 001</text>
+  <text x="55" y="505" fill="#171714" font-family="Arial" font-weight="900" font-size="106">FORM</text><text x="55" y="625" fill="#171714" font-family="Georgia" font-style="italic" font-size="96">follows</text><text x="55" y="820" fill="#c8f257" font-family="Arial" font-weight="900" font-size="102">FEELING</text>
+</svg>

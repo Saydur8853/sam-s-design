@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220">
+  <g transform="rotate(-32 160 110)" fill="none" stroke="#ffffff" stroke-opacity=".58">
+    <circle cx="160" cy="102" r="20" stroke-width="2"/>
+    <path d="M148 102c5-14 19-14 24 0M145 109c9-10 21-10 30 0M149 116c7-5 15-5 22 0" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <g transform="rotate(-32 160 110)" fill="#ffffff" fill-opacity=".58" font-family="Arial, sans-serif">
+    <text x="185" y="105" font-size="18" font-weight="700">sameulshajid.art</text>
+    <text x="185" y="120" font-size="9" letter-spacing="1.5">GRAPHIC DESIGN STUDIO</text>
+  </g>
+</svg>

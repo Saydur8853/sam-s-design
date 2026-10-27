@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <defs><radialGradient id="g"><stop stop-color="#6b24ff"/><stop offset="1" stop-color="#080611"/></radialGradient></defs><rect width="800" height="1000" fill="url(#g)"/>
+  <circle cx="400" cy="460" r="250" fill="none" stroke="#ff4da6" stroke-width="4"/><circle cx="400" cy="460" r="180" fill="none" stroke="#58f5ff" stroke-width="2"/><text x="400" y="430" fill="#fff" text-anchor="middle" font-family="Arial" font-size="45" letter-spacing="16">AFTER</text><text x="400" y="540" fill="#58f5ff" text-anchor="middle" font-family="Arial" font-weight="900" font-size="115">DARK</text>
+  <text x="400" y="860" fill="#fff" text-anchor="middle" font-family="Arial" font-size="18" letter-spacing="7">FRIDAY / 11PM / DHAKA</text>
+</svg>

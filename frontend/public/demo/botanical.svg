@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#123f35"/><rect x="85" y="80" width="630" height="840" fill="#f1eadc"/>
+  <path d="M130 830C310 680 230 410 350 170M670 830C500 670 600 440 470 160" fill="none" stroke="#668d61" stroke-width="15"/><g fill="#8eaa78"><ellipse cx="235" cy="570" rx="70" ry="30" transform="rotate(35 235 570)"/><ellipse cx="555" cy="470" rx="70" ry="30" transform="rotate(-35 555 470)"/></g>
+  <text x="400" y="425" fill="#123f35" text-anchor="middle" font-family="Georgia" font-style="italic" font-size="65">The Garden</text><text x="400" y="490" fill="#123f35" text-anchor="middle" font-family="Arial" font-size="17" letter-spacing="10">DINNER MENU</text>
+</svg>
