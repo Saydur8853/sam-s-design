@@ -20,9 +20,6 @@ type StudioView = 'dashboard' | 'products' | 'inbox';
           <button type="button" [class.active]="view() === 'dashboard'" (click)="open('dashboard')"><span>01</span> Overview</button>
           <button type="button" [class.active]="view() === 'products'" (click)="open('products')"><span>02</span> Products</button>
           <button type="button" [class.active]="view() === 'inbox'" (click)="open('inbox')"><span>03</span> Inbox @if (dashboard()?.unread_messages) { <b>{{ dashboard()?.unread_messages }}</b> }</button>
-          <button type="button" (click)="downloadDbBackup()" [disabled]="downloadingBackup()">
-            <span>⬇</span> {{ downloadingBackup() ? 'Backing up…' : 'DB Backup' }}
-          </button>
         </nav>
       </aside>
 
