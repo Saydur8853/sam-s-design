@@ -20,13 +20,24 @@ type StudioView = 'dashboard' | 'products' | 'inbox';
           <button type="button" [class.active]="view() === 'dashboard'" (click)="open('dashboard')"><span>01</span> Overview</button>
           <button type="button" [class.active]="view() === 'products'" (click)="open('products')"><span>02</span> Products</button>
           <button type="button" [class.active]="view() === 'inbox'" (click)="open('inbox')"><span>03</span> Inbox @if (dashboard()?.unread_messages) { <b>{{ dashboard()?.unread_messages }}</b> }</button>
+          <button type="button" (click)="downloadDbBackup()" [disabled]="downloadingBackup()">
+            <span>⬇</span> {{ downloadingBackup() ? 'Backing up…' : 'DB Backup' }}
+          </button>
         </nav>
       </aside>
 
       <div class="studio-content">
         @if (notice()) { <p class="studio-notice" role="status">{{ notice() }}</p> }
         @if (view() === 'dashboard') {
-          <header class="studio-heading"><div><span>Overview</span><h2>Good work starts<br>with a clear desk.</h2></div><button class="button primary" type="button" (click)="startProduct()">+ Add artwork</button></header>
+          <header class="studio-heading">
+            <div><span>Overview</span><h2>Good work starts<br>with a clear desk.</h2></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="button secondary" type="button" [disabled]="downloadingBackup()" (click)="downloadDbBackup()">
+                {{ downloadingBackup() ? 'Preparing backup…' : 'Download DB Backup ↓' }}
+              </button>
+              <button class="button primary" type="button" (click)="startProduct()">+ Add artwork</button>
+            </div>
+          </header>
           @if (dashboard(); as stats) {
             <div class="studio-stats">
               <article><span>Published artwork</span><strong>{{ stats.published_products }}</strong><small>{{ stats.products }} total</small></article>
@@ -166,6 +177,7 @@ export class StudioComponent implements OnInit {
   readonly requests = signal<CustomRequest[]>([]); readonly filteredRequests = signal<CustomRequest[]>([]); readonly activeRequest = signal<CustomRequest | null>(null); readonly messages = signal<PortalMessage[]>([]);
   readonly showProductForm = signal(false); readonly editingProduct = signal<StudioProduct | null>(null); readonly savingProduct = signal(false); readonly sending = signal(false); readonly notice = signal(''); readonly formError = signal(''); readonly selectedFiles = signal<File[]>([]); readonly previewUrls = signal<Record<number, string>>({});
   readonly needsCoverImage = signal(false);
+  readonly downloadingBackup = signal(false);
   private previewFile: File | null = null; private sourceFile: File | null = null; private readonly previewObjects = new Map<number, string>();
   readonly statuses = [{ value: 'SUBMITTED', label: 'Submitted' }, { value: 'UNDER_REVIEW', label: 'Under review' }, { value: 'NEEDS_INFORMATION', label: 'Needs information' }, { value: 'QUOTED', label: 'Quoted' }, { value: 'IN_PROGRESS', label: 'In progress' }, { value: 'COMPLETED', label: 'Completed' }, { value: 'CANCELLED', label: 'Cancelled' }];
   readonly productForm = this.fb.nonNullable.group({ title: ['', Validators.required], category_id: [0, Validators.min(1)], short_description: ['', Validators.required], description: ['', Validators.required], price: ['0.00', Validators.required], currency: ['USD', Validators.required], product_type: ['POSTER', Validators.required], license_type: ['COMMERCIAL', Validators.required], dimensions: [''], resolution: [''], file_formats: [''], color_mode: [''], is_featured: [false], is_active: [true] });
@@ -195,6 +207,25 @@ export class StudioComponent implements OnInit {
   }
 
   open(view: StudioView): void { this.view.set(view); if (view === 'inbox' && !this.activeRequest() && this.requests()[0]) this.selectRequest(this.requests()[0]); }
+
+  downloadDbBackup(): void {
+    if (this.downloadingBackup()) return;
+    this.downloadingBackup.set(true);
+    this.studio.downloadDatabaseBackup().pipe(finalize(() => this.downloadingBackup.set(false))).subscribe({
+      next: blob => {
+        const now = new Date();
+        const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `sameulshajid-postgres-backup-${stamp}.zip`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        this.flash('Database backup downloaded to your PC.');
+      },
+      error: () => this.flash('Database backup could not be downloaded.')
+    });
+  }
   openConversation(id: string): void { this.open('inbox'); const request = this.requests().find(item => item.id === id); if (request) this.selectRequest(request); }
   statusLabel(value: string): string { return this.statuses.find(status => status.value === value)?.label || value; }
   private loadAll(): void { this.studio.dashboard().subscribe(value => this.dashboard.set(value)); this.loadStudioProducts(true); this.catalog.categories().subscribe(value => this.categories.set(value)); this.work.requests().subscribe(value => { this.requests.set(value); this.filteredRequests.set(value); }); }

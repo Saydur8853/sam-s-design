@@ -54,4 +54,7 @@ export class StudioService {
   }
   createProduct(payload: FormData): Observable<StudioProduct> { return this.http.post<StudioProduct>('/api/v1/catalog/studio/products/', payload); }
   updateProduct(id: number, payload: FormData): Observable<StudioProduct> { return this.http.patch<StudioProduct>(`/api/v1/catalog/studio/products/${id}/`, payload); }
+  downloadDatabaseBackup(): Observable<Blob> {
+    return this.http.get('/api/v1/studio/db-backup/', { responseType: 'blob' });
+  }
 }

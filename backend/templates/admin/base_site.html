@@ -1,0 +1,14 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | sameulshajid.art Admin{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">sameulshajid.art Administration</a></div>
+{% endblock %}
+
+{% block userlinks %}
+  <a href="{% url 'admin-db-backup' %}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;margin-right:10px;background:#c8f257;color:#171714 !important;border-radius:6px;font-weight:800;font-size:11px;text-decoration:none;letter-spacing:.05em;">
+    ⬇ Download DB Backup
+  </a>
+  {{ block.super }}
+{% endblock %}
