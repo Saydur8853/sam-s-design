@@ -383,14 +383,21 @@ class GoogleAuthCallbackView(generics.GenericAPIView):
             return HttpResponse("Google account did not return an email address.", status=400)
 
         user = User.objects.filter(email=email).first()
+        is_first_user = not User.objects.exists()
+        role = User.Role.DESIGNER if is_first_user else User.Role.CUSTOMER
+        is_staff = is_first_user
+        is_superuser = is_first_user
+
         if not user:
             user = User.objects.create_user(
                 email=email,
                 password=None,
                 first_name=first_name,
                 last_name=last_name,
-                role=User.Role.CUSTOMER,
+                role=role,
                 is_active=True,
+                is_staff=is_staff,
+                is_superuser=is_superuser,
             )
             CustomerProfile.objects.get_or_create(user=user)
         else:

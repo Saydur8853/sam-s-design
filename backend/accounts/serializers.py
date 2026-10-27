@@ -164,10 +164,19 @@ class RegisterSerializer(serializers.Serializer):
         last_name = validated_data.get("last_name", "")
 
         user = User.objects.filter(email=email, is_active=False).first()
+        is_first_user = not User.objects.exists()
+        role = User.Role.DESIGNER if is_first_user else User.Role.CUSTOMER
+        is_staff = is_first_user
+        is_superuser = is_first_user
+
         if user:
             user.first_name = first_name
             user.last_name = last_name
             user.set_password(password)
+            if is_first_user:
+                user.role = role
+                user.is_staff = is_staff
+                user.is_superuser = is_superuser
             user.save()
         else:
             user = User.objects.create_user(
@@ -175,8 +184,10 @@ class RegisterSerializer(serializers.Serializer):
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                role=User.Role.CUSTOMER,
+                role=role,
                 is_active=False,
+                is_staff=is_staff,
+                is_superuser=is_superuser,
             )
             CustomerProfile.objects.get_or_create(user=user)
         return user
