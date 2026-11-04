@@ -6,6 +6,7 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, interval } from 'rxjs';
 import { AuthService } from './auth.service';
 import { CustomRequest, CustomWorkService, MessageAttachment, PortalMessage } from './custom-work.service';
+import { MessageRealtimeService } from './message-realtime.service';
 
 @Component({
   selector: 'app-chat-widget',
@@ -93,6 +94,7 @@ import { CustomRequest, CustomWorkService, MessageAttachment, PortalMessage } fr
               @for (request of requests(); track request.id) {
                 <div class="thread-item-row" [class.active]="activeRequest()?.id === request.id">
                   <button type="button" class="thread-item" (click)="selectRequest(request)">
+                    @if (request.unread_count) { <i class="thread-unread-count">{{ request.unread_count }}</i> }
                     <span class="thread-status">{{ request.status_display }}</span>
                     <strong>{{ request.title }}</strong>
                     <p>{{ request.last_message || 'Conversation started' }}</p>
@@ -108,6 +110,7 @@ import { CustomRequest, CustomWorkService, MessageAttachment, PortalMessage } fr
             <div class="chat-popup-messages" id="popup-message-stream">
               @for (message of messages(); track message.id) {
                 <article class="message-bubble" [class.mine]="message.is_mine" [class.designer]="message.sender_role === 'DESIGNER'">
+                  <strong class="message-sender-name">{{ message.is_mine ? 'You' : message.sender_name }}</strong>
                   @if (message.body) { <p>{{ message.body }}</p> }
                   @if (message.attachments.length) {
                     <div class="message-attachments">
@@ -177,6 +180,9 @@ import { CustomRequest, CustomWorkService, MessageAttachment, PortalMessage } fr
         (click)="service.toggleChat()"
         [attr.aria-expanded]="service.popupOpen()"
         aria-label="Open custom work chat">
+        @if (!service.popupOpen() && service.unreadCount()) {
+          <span class="chat-unread-badge" aria-label="Unread messages">{{ service.unreadCount() > 99 ? '99+' : service.unreadCount() }}</span>
+        }
         @if (service.popupOpen()) {
           <span class="chat-fab-close" aria-hidden="true">×</span>
         } @else {
@@ -202,6 +208,7 @@ export class ChatWidgetComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly realtime = inject(MessageRealtimeService);
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
@@ -280,12 +287,22 @@ export class ChatWidgetComponent implements OnInit {
       this.currentUrl.set(event.urlAfterRedirects);
     });
 
-    interval(8000).pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => {
-      if (!this.service.popupOpen() || !this.auth.isSignedIn()) return;
+    this.refreshUnreadRequests();
+    this.realtime.messages.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(event => {
       this.service.requests().subscribe(requests => {
         this.requests.set(requests);
+        const active = this.activeRequest();
+        if (this.service.popupOpen() && active?.id === event.request_id) this.loadMessages(active.id, true);
+      });
+    });
+
+    interval(30000).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
+      if (!this.auth.isSignedIn() || this.realtime.connected()) return;
+      this.service.requests().subscribe(requests => {
+        this.requests.set(requests);
+        if (!this.service.popupOpen()) return;
         const active = this.activeRequest();
         if (active) {
           const updated = requests.find(item => item.id === active.id);
@@ -294,6 +311,11 @@ export class ChatWidgetComponent implements OnInit {
         }
       });
     });
+  }
+
+  private refreshUnreadRequests(): void {
+    if (!this.auth.isSignedIn()) return;
+    this.service.requests().subscribe(requests => this.requests.set(requests));
   }
 
   openNewForm(): void {

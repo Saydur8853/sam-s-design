@@ -6,4 +6,6 @@ drf-spectacular==0.28.0
 psycopg[binary]==3.2.12
 python-dotenv==1.1.1
 Pillow>=10.4.0
+channels==4.3.2
+daphne==4.2.3
 

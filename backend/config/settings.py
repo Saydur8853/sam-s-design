@@ -21,6 +21,7 @@ DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "sameulshajid.art,www.sameulshajid.art,localhost,127.0.0.1")
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -70,6 +71,10 @@ TEMPLATES = [
     }
 ]
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
+}
 
 if os.getenv("DB_ENGINE", "sqlite") == "postgresql":
     DATABASES = {
@@ -120,6 +125,7 @@ CORS_ALLOWED_ORIGINS = env_list(
     "DJANGO_CORS_ALLOWED_ORIGINS",
     "https://sameulshajid.art,https://www.sameulshajid.art,http://localhost:4200",
 )
+CORS_EXPOSE_HEADERS = ["Content-Disposition", "Content-Length"]
 CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
     "https://sameulshajid.art,https://www.sameulshajid.art,http://localhost:4200",

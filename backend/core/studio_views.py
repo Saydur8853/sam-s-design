@@ -12,12 +12,13 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.core.management import call_command
 from django.db import connection
 from django.db.models import Count
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from catalog.models import Product
+from accounts.models import User
 from custom_requests.models import CustomDesignRequest
 from messaging.models import Conversation
 from orders.models import Order
@@ -123,8 +124,10 @@ def generate_database_backup_response() -> HttpResponse:
         zf.writestr("database_dump.json", json_out.getvalue().encode("utf-8"))
 
     zip_buffer.seek(0)
-    response = HttpResponse(zip_buffer.getvalue(), content_type="application/zip")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response = FileResponse(zip_buffer, as_attachment=True, filename=filename, content_type="application/zip")
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -165,6 +168,37 @@ class StudioDatabaseBackupView(APIView):
 
     def get(self, request):
         return generate_database_backup_response()
+
+
+class StudioUserListView(APIView):
+    permission_classes = (IsDesigner,)
+
+    def get(self, request):
+        users = User.objects.select_related("customer_profile").order_by("-date_joined")
+        search = request.query_params.get("search", "").strip()
+        if search:
+            from django.db.models import Q
+            users = users.filter(
+                Q(email__icontains=search)
+                | Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(customer_profile__display_name__icontains=search)
+            )
+        return Response([
+            {
+                "id": user.id,
+                "email": user.email,
+                "name": (
+                    getattr(getattr(user, "customer_profile", None), "display_name", "")
+                    or user.get_full_name().strip()
+                    or user.email.split("@", 1)[0]
+                ),
+                "role": user.role,
+                "is_active": user.is_active,
+                "date_joined": user.date_joined,
+            }
+            for user in users
+        ])
 
 
 @staff_member_required

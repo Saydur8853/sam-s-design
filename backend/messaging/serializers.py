@@ -58,7 +58,8 @@ class MessageSerializer(serializers.ModelSerializer):
         return message
 
     def get_sender_name(self, obj):
-        name = obj.sender.get_full_name().strip()
+        profile = getattr(obj.sender, "customer_profile", None)
+        name = (getattr(profile, "display_name", "") or obj.sender.get_full_name()).strip()
         return name or ("Designer" if obj.sender.role == "DESIGNER" else obj.sender.email)
 
     def get_is_mine(self, obj):

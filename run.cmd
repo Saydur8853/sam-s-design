@@ -23,7 +23,7 @@ if not exist ".venv\Scripts\python.exe" (
     echo [1/5] Python environment is ready.
 )
 
-".venv\Scripts\python.exe" -c "import django, rest_framework" >nul 2>&1
+".venv\Scripts\python.exe" -c "import django, rest_framework, channels, daphne" >nul 2>&1
 if errorlevel 1 (
     echo [2/5] Installing backend dependencies...
     ".venv\Scripts\python.exe" -m pip install -r "backend\requirements.txt"

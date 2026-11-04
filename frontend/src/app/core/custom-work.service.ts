@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 
 export interface CustomRequest {
   id: string;
@@ -42,6 +42,7 @@ export class CustomWorkService {
 
   readonly popupOpen = signal(false);
   readonly draftOptions = signal<ChatDraftOptions | null>(null);
+  readonly unreadCount = signal(0);
   lastOpenedAt = 0;
 
   isMobileViewport(): boolean {
@@ -76,7 +77,11 @@ export class CustomWorkService {
     this.popupOpen.set(false);
   }
 
-  requests(): Observable<CustomRequest[]> { return this.http.get<CustomRequest[]>('/api/v1/custom-requests/'); }
+  requests(): Observable<CustomRequest[]> {
+    return this.http.get<CustomRequest[]>('/api/v1/custom-requests/').pipe(
+      tap(requests => this.unreadCount.set(requests.reduce((total, request) => total + request.unread_count, 0)))
+    );
+  }
   createRequest(payload: { title: string; request_type: string; initial_message: string }): Observable<CustomRequest> { return this.http.post<CustomRequest>('/api/v1/custom-requests/', payload); }
   deleteRequest(requestId: string): Observable<void> { return this.http.delete<void>(`/api/v1/custom-requests/${requestId}/`); }
   messages(requestId: string): Observable<PortalMessage[]> { return this.http.get<PortalMessage[]>(`/api/v1/messaging/requests/${requestId}/messages/`); }

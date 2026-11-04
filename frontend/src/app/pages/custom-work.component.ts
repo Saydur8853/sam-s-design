@@ -3,9 +3,10 @@ import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { interval, switchMap } from 'rxjs';
+import { interval } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { CustomRequest, CustomWorkService, MessageAttachment, PortalMessage } from '../core/custom-work.service';
+import { MessageRealtimeService } from '../core/message-realtime.service';
 
 @Component({
   standalone: true,
@@ -29,6 +30,7 @@ import { CustomRequest, CustomWorkService, MessageAttachment, PortalMessage } fr
             @for (request of requests(); track request.id) {
               <div class="thread-item-row" [class.active]="activeRequest()?.id === request.id">
                 <button type="button" class="thread-item" (click)="selectRequest(request)">
+                  @if (request.unread_count) { <i class="thread-unread-count">{{ request.unread_count }}</i> }
                   <span class="thread-status">{{ request.status_display }}</span><strong>{{ request.title }}</strong>
                   @if (request.customer_email) { <small>{{ request.customer_email }}</small> }
                   <p>{{ request.last_message || 'Conversation started' }}</p><time>{{ request.updated_at | date:'MMM d, h:mm a' }}</time>
@@ -55,6 +57,7 @@ import { CustomRequest, CustomWorkService, MessageAttachment, PortalMessage } fr
             <div class="message-stream" id="message-stream">
               @for (message of messages(); track message.id) {
                 <article class="message-bubble" [class.mine]="message.is_mine" [class.designer]="message.sender_role === 'DESIGNER'">
+                  <strong class="message-sender-name">{{ message.is_mine ? 'You' : message.sender_name }}</strong>
                   @if (message.body) { <p>{{ message.body }}</p> }
                   @if (message.attachments.length) {
                     <div class="message-attachments">
@@ -98,6 +101,7 @@ export class CustomWorkComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly realtime = inject(MessageRealtimeService);
   readonly requests = signal<CustomRequest[]>([]);
   readonly activeRequest = signal<CustomRequest | null>(null);
   readonly messages = signal<PortalMessage[]>([]);
@@ -128,13 +132,20 @@ export class CustomWorkComponent implements OnInit {
       this.service.draftOptions.set(null);
     }
     this.refreshRequests();
-    interval(8000).pipe(takeUntilDestroyed(this.destroyRef), switchMap(() => this.service.requests())).subscribe(requests => {
+    this.realtime.messages.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refreshFromServer(true));
+    interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (!this.realtime.connected()) this.refreshFromServer(false);
+    });
+  }
+
+  private refreshFromServer(scrollForNew: boolean): void {
+    this.service.requests().subscribe(requests => {
       this.requests.set(requests);
       const active = this.activeRequest();
       if (active) {
         const updated = requests.find(item => item.id === active.id);
         if (updated) this.activeRequest.set(updated);
-        this.loadMessages(active.id, false);
+        this.loadMessages(active.id, scrollForNew);
       }
     });
   }

@@ -6,6 +6,8 @@ from rest_framework.exceptions import PermissionDenied
 from custom_requests.models import CustomDesignRequest
 from .models import Conversation, Message, MessageAttachment
 from .serializers import MessageSerializer
+from .realtime import notify_new_message
+from django.db import transaction
 
 
 class RequestMessagesView(generics.ListCreateAPIView):
@@ -21,7 +23,7 @@ class RequestMessagesView(generics.ListCreateAPIView):
         return conversation
 
     def get_queryset(self):
-        return Message.objects.select_related("sender").filter(conversation=self.conversation())
+        return Message.objects.select_related("sender", "sender__customer_profile").filter(conversation=self.conversation())
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
@@ -33,12 +35,13 @@ class RequestMessagesView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         conversation = self.conversation()
-        serializer.save(conversation=conversation, sender=self.request.user)
+        message = serializer.save(conversation=conversation, sender=self.request.user)
         custom_request = conversation.request
         if (self.request.user.is_staff or self.request.user.role == "DESIGNER") and custom_request.status == CustomDesignRequest.Status.SUBMITTED:
             custom_request.status = CustomDesignRequest.Status.UNDER_REVIEW
         custom_request.updated_at = timezone.now()
         custom_request.save(update_fields=("status", "updated_at"))
+        transaction.on_commit(lambda: notify_new_message(message))
 
 
 class AttachmentDownloadView(generics.GenericAPIView):

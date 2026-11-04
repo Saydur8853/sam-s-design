@@ -1,4 +1,7 @@
 from django.db.models import Q
+from django.conf import settings
+from django.core.files.storage import default_storage
+from pathlib import Path
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
@@ -97,6 +100,27 @@ class StudioProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related("category").prefetch_related("download_files").all()
 
     def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.save(update_fields=("is_active", "updated_at"))
+        preview_path = ""
+        if instance.preview_url and instance.preview_url.startswith(settings.MEDIA_URL):
+            preview_path = instance.preview_url[len(settings.MEDIA_URL):]
+        private_root = Path(settings.PRIVATE_MEDIA_ROOT).resolve()
+        private_files = []
+        for item in instance.download_files.all():
+            candidate = (private_root / item.private_path).resolve()
+            try:
+                candidate.relative_to(private_root)
+            except ValueError:
+                continue
+            private_files.append(candidate)
+        instance.delete()
+        if preview_path:
+            try:
+                default_storage.delete(preview_path)
+            except OSError:
+                pass
+        for file_path in private_files:
+            try:
+                file_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 

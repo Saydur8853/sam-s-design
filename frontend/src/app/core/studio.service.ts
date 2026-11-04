@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -41,6 +41,15 @@ export interface StudioProductPage {
   results: StudioProduct[];
 }
 
+export interface StudioUser {
+  id: number;
+  email: string;
+  name: string;
+  role: 'CUSTOMER' | 'DESIGNER';
+  is_active: boolean;
+  date_joined: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class StudioService {
   private readonly http = inject(HttpClient);
@@ -54,7 +63,9 @@ export class StudioService {
   }
   createProduct(payload: FormData): Observable<StudioProduct> { return this.http.post<StudioProduct>('/api/v1/catalog/studio/products/', payload); }
   updateProduct(id: number, payload: FormData): Observable<StudioProduct> { return this.http.patch<StudioProduct>(`/api/v1/catalog/studio/products/${id}/`, payload); }
-  downloadDatabaseBackup(): Observable<Blob> {
-    return this.http.get('/api/v1/studio/db-backup/', { responseType: 'blob' });
+  deleteProduct(id: number): Observable<void> { return this.http.delete<void>(`/api/v1/catalog/studio/products/${id}/`); }
+  users(): Observable<StudioUser[]> { return this.http.get<StudioUser[]>('/api/v1/studio/users/'); }
+  downloadDatabaseBackup(): Observable<HttpResponse<Blob>> {
+    return this.http.get('/api/v1/studio/db-backup/', { responseType: 'blob', observe: 'response' });
   }
 }

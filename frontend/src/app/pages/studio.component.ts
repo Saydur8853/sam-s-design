@@ -5,9 +5,10 @@ import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angu
 import { debounceTime, distinctUntilChanged, finalize, interval, switchMap } from 'rxjs';
 import { Category, CatalogService } from '../core/catalog.service';
 import { CustomRequest, CustomWorkService, MessageAttachment, PortalMessage } from '../core/custom-work.service';
-import { StudioDashboard, StudioProduct, StudioService } from '../core/studio.service';
+import { StudioDashboard, StudioProduct, StudioService, StudioUser } from '../core/studio.service';
+import { MessageRealtimeService } from '../core/message-realtime.service';
 
-type StudioView = 'dashboard' | 'products' | 'inbox';
+type StudioView = 'dashboard' | 'products' | 'inbox' | 'users';
 
 @Component({
   standalone: true,
@@ -20,6 +21,7 @@ type StudioView = 'dashboard' | 'products' | 'inbox';
           <button type="button" [class.active]="view() === 'dashboard'" (click)="open('dashboard')"><span>01</span> Overview</button>
           <button type="button" [class.active]="view() === 'products'" (click)="open('products')"><span>02</span> Products</button>
           <button type="button" [class.active]="view() === 'inbox'" (click)="open('inbox')"><span>03</span> Inbox @if (dashboard()?.unread_messages) { <b>{{ dashboard()?.unread_messages }}</b> }</button>
+          <button type="button" [class.active]="view() === 'users'" (click)="open('users')"><span>04</span> Users</button>
         </nav>
       </aside>
 
@@ -102,7 +104,7 @@ type StudioView = 'dashboard' | 'products' | 'inbox';
           </div>
 
           <div class="studio-product-grid">
-            @for (product of products(); track product.id) { <article><div class="studio-product-preview"><img [src]="product.preview_url" [alt]="product.title"><span [class.draft]="!product.is_active">{{ product.is_active ? 'Published' : 'Draft' }}</span></div><div><small>{{ product.category_name }}</small><h3>{{ product.title }}</h3><p>{{ product.price | currency:product.currency }}</p><div><button type="button" (click)="editProduct(product)">Edit</button><button type="button" (click)="toggleProduct(product)">{{ product.is_active ? 'Unpublish' : 'Publish' }}</button></div></div></article> }
+            @for (product of products(); track product.id) { <article><div class="studio-product-preview"><img [src]="product.preview_url" [alt]="product.title"><span [class.draft]="!product.is_active">{{ product.is_active ? 'Published' : 'Draft' }}</span></div><div><small>{{ product.category_name }}</small><h3>{{ product.title }}</h3><p>{{ product.price | currency:product.currency }}</p><div><button type="button" (click)="editProduct(product)">Edit</button><button type="button" (click)="toggleProduct(product)">{{ product.is_active ? 'Unpublish' : 'Publish' }}</button><button class="danger-action" type="button" (click)="deleteProduct(product)">Delete</button></div></div></article> }
             @empty { <p class="studio-empty">No artwork found. Add your first product.</p> }
           </div>
 
@@ -133,20 +135,41 @@ type StudioView = 'dashboard' | 'products' | 'inbox';
                   </div>
                 </header>
                 <div class="studio-message-stream" id="studio-message-stream">
-                  @for (message of messages(); track message.id) { <article [class.mine]="message.is_mine">@if (message.body) { <p>{{ message.body }}</p> }@if (message.attachments.length) { <div class="message-attachments">@for (file of message.attachments; track file.id) { @if (file.mime_type.startsWith('image/') && previewUrls()[file.id]; as url) { <button class="image-attachment" type="button" (click)="openImage(file)"><img [src]="url" alt="Attached image"></button> } @else { <button class="attachment-card" type="button" (click)="work.downloadAttachment(file)"><span>↓</span><span><strong>Attached file</strong><small>{{ formatSize(file.file_size) }}</small></span></button> } }</div> }<div class="message-footer"><time>{{ message.created_at | date:'MMM d, h:mm a' }}</time><button type="button" class="message-delete-btn" (click)="deleteMessage(message, $event)" title="Delete message" aria-label="Delete message">×</button></div></article> }
+                  @for (message of messages(); track message.id) { <article [class.mine]="message.is_mine"><strong class="message-sender-name">{{ message.is_mine ? 'You' : message.sender_name }}</strong>@if (message.body) { <p>{{ message.body }}</p> }@if (message.attachments.length) { <div class="message-attachments">@for (file of message.attachments; track file.id) { @if (file.mime_type.startsWith('image/') && previewUrls()[file.id]; as url) { <button class="image-attachment" type="button" (click)="openImage(file)"><img [src]="url" alt="Attached image"></button> } @else { <button class="attachment-card" type="button" (click)="work.downloadAttachment(file)"><span>↓</span><span><strong>Attached file</strong><small>{{ formatSize(file.file_size) }}</small></span></button> } }</div> }<div class="message-footer"><time>{{ message.created_at | date:'MMM d, h:mm a' }}</time><button type="button" class="message-delete-btn" (click)="deleteMessage(message, $event)" title="Delete message" aria-label="Delete message">×</button></div></article> }
                 </div>
                 <form class="studio-composer" [formGroup]="messageForm" (ngSubmit)="sendMessage()"><textarea formControlName="body" rows="3" maxlength="4000" placeholder="Reply to customer…" (keydown.enter)="handleEnter($event)"></textarea>@if (selectedFiles().length) { <div class="selected-files">@for (file of selectedFiles(); track file.name + file.size; let index = $index) { <span>{{ file.type.startsWith('image/') ? 'Image' : 'File' }} · <small>{{ formatSize(file.size) }}</small><button type="button" (click)="removeFile(index)">×</button></span> }</div> }<div><label class="attach-button">＋ Attach<input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf,.zip,.docx,.pptx,.ai,.psd" (change)="chooseFiles($event)"></label><button class="button primary" type="submit" [disabled]="sending() || (!messageForm.controls.body.value.trim() && !selectedFiles().length)">Send ↑</button></div></form>
               } @else { <div class="conversation-empty"><span>✦</span><h2>Select a conversation</h2><p>Customer messages and project files will appear here.</p></div> }
             </section>
           </div>
         }
+
+        @if (view() === 'users') {
+          <header class="studio-heading compact"><div><span>Registered accounts</span><h2>Users.</h2></div><strong class="studio-user-total">{{ filteredUsers().length }} accounts</strong></header>
+          <section class="studio-panel studio-users-panel">
+            <div class="studio-user-toolbar">
+              <input type="search" placeholder="Search name or email" aria-label="Search registered users" (input)="filterUsers($event)">
+            </div>
+            <div class="studio-user-table">
+              <div class="studio-user-row studio-user-head"><span>User</span><span>Role</span><span>Status</span><span>Registered</span></div>
+              @for (user of filteredUsers(); track user.id) {
+                <div class="studio-user-row">
+                  <span><strong>{{ user.name }}</strong><small>{{ user.email }}</small></span>
+                  <b>{{ user.role === 'DESIGNER' ? 'Designer' : 'Customer' }}</b>
+                  <i [class.inactive]="!user.is_active">{{ user.is_active ? 'Active' : 'Inactive' }}</i>
+                  <time>{{ user.date_joined | date:'MMM d, y, h:mm a' }}</time>
+                </div>
+              } @empty { <p class="studio-empty">No registered users found.</p> }
+            </div>
+          </section>
+        }
       </div>
     </section>
   `
 })
 export class StudioComponent implements OnInit {
-  private readonly studio = inject(StudioService); readonly work = inject(CustomWorkService); private readonly catalog = inject(CatalogService); private readonly fb = inject(FormBuilder); private readonly destroyRef = inject(DestroyRef);
+  private readonly studio = inject(StudioService); readonly work = inject(CustomWorkService); private readonly catalog = inject(CatalogService); private readonly fb = inject(FormBuilder); private readonly destroyRef = inject(DestroyRef); private readonly realtime = inject(MessageRealtimeService);
   readonly view = signal<StudioView>('dashboard'); readonly dashboard = signal<StudioDashboard | null>(null); readonly products = signal<StudioProduct[]>([]); readonly categories = signal<Category[]>([]);
+  readonly users = signal<StudioUser[]>([]); readonly filteredUsers = signal<StudioUser[]>([]);
   readonly String = String;
   readonly studioCategoryFilter = signal('');
   readonly studioSearchControl = new FormControl('', { nonNullable: true });
@@ -187,7 +210,11 @@ export class StudioComponent implements OnInit {
       distinctUntilChanged(),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(() => this.loadStudioProducts(true));
-    interval(10000).pipe(takeUntilDestroyed(this.destroyRef), switchMap(() => this.work.requests())).subscribe(requests => { this.requests.set(requests); this.filteredRequests.set(requests); });
+    this.realtime.messages.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.refreshInbox(true));
+    interval(30000).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      switchMap(() => this.realtime.connected() ? [] : this.work.requests())
+    ).subscribe(requests => this.applyInboxRefresh(requests, false));
     this.destroyRef.onDestroy(() => {
       this.studioObserver?.disconnect();
       this.previewObjects.forEach(url => URL.revokeObjectURL(url));
@@ -209,23 +236,41 @@ export class StudioComponent implements OnInit {
     if (this.downloadingBackup()) return;
     this.downloadingBackup.set(true);
     this.studio.downloadDatabaseBackup().pipe(finalize(() => this.downloadingBackup.set(false))).subscribe({
-      next: blob => {
-        const now = new Date();
-        const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `sameulshajid-postgres-backup-${stamp}.zip`;
-        anchor.click();
-        URL.revokeObjectURL(url);
-        this.flash('Database backup downloaded to your PC.');
+      next: async response => {
+        const blob = response.body;
+        try {
+          if (!blob || blob.size < 4) throw new Error('The server returned an empty backup.');
+          const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+          if (signature[0] !== 0x50 || signature[1] !== 0x4b) {
+            throw new Error('The server response was not a ZIP backup.');
+          }
+          const now = new Date();
+          const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const disposition = response.headers.get('content-disposition') || '';
+          const headerName = disposition.match(/filename\*?=(?:UTF-8''|["']?)([^"';]+)/i)?.[1];
+          const filename = headerName
+            ? decodeURIComponent(headerName.trim()).replace(/[\\/:*?"<>|]/g, '-')
+            : `sameulshajid-postgres-backup-${stamp}.zip`;
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = filename;
+          anchor.style.display = 'none';
+          document.body.appendChild(anchor);
+          anchor.click();
+          anchor.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+          this.flash('Database backup download started.');
+        } catch (error) {
+          this.flash(error instanceof Error ? error.message : 'Database backup could not be downloaded.');
+        }
       },
       error: () => this.flash('Database backup could not be downloaded.')
     });
   }
   openConversation(id: string): void { this.open('inbox'); const request = this.requests().find(item => item.id === id); if (request) this.selectRequest(request); }
   statusLabel(value: string): string { return this.statuses.find(status => status.value === value)?.label || value; }
-  private loadAll(): void { this.studio.dashboard().subscribe(value => this.dashboard.set(value)); this.loadStudioProducts(true); this.catalog.categories().subscribe(value => this.categories.set(value)); this.work.requests().subscribe(value => { this.requests.set(value); this.filteredRequests.set(value); }); }
+  private loadAll(): void { this.studio.dashboard().subscribe(value => this.dashboard.set(value)); this.loadStudioProducts(true); this.catalog.categories().subscribe(value => this.categories.set(value)); this.work.requests().subscribe(value => { this.requests.set(value); this.filteredRequests.set(value); }); this.studio.users().subscribe(value => { this.users.set(value); this.filteredUsers.set(value); }); }
 
   selectStudioCategory(catId: string): void {
     this.studioCategoryFilter.set(catId);
@@ -301,7 +346,21 @@ export class StudioComponent implements OnInit {
     });
   }
   toggleProduct(product: StudioProduct): void { const payload = new FormData(); payload.append('is_active', String(!product.is_active)); this.studio.updateProduct(product.id, payload).subscribe(saved => { this.products.update(items => items.map(item => item.id === saved.id ? saved : item)); this.refreshDashboard(); }); }
+  deleteProduct(product: StudioProduct): void {
+    if (!window.confirm(`Permanently delete “${product.title}”? This also removes its uploaded files and cannot be undone.`)) return;
+    this.studio.deleteProduct(product.id).subscribe({
+      next: () => {
+        this.products.update(items => items.filter(item => item.id !== product.id));
+        this.studioTotalCount.update(count => Math.max(0, count - 1));
+        if (this.editingProduct()?.id === product.id) this.closeProductForm();
+        this.flash('Product permanently deleted.');
+        this.refreshDashboard();
+      },
+      error: () => this.flash('Product could not be deleted.')
+    });
+  }
   filterThreads(event: Event): void { const value = (event.target as HTMLInputElement).value.toLowerCase().trim(); this.filteredRequests.set(this.requests().filter(item => !value || `${item.title} ${item.customer_email} ${item.last_message}`.toLowerCase().includes(value))); }
+  filterUsers(event: Event): void { const value = (event.target as HTMLInputElement).value.toLowerCase().trim(); this.filteredUsers.set(this.users().filter(user => !value || `${user.name} ${user.email} ${user.role}`.toLowerCase().includes(value))); }
   selectRequest(request: CustomRequest): void { this.activeRequest.set({ ...request, unread_count: 0 }); this.work.messages(request.id).subscribe(messages => { this.messages.set(messages); this.loadPreviews(messages); this.scrollMessages(); this.requests.update(items => items.map(item => item.id === request.id ? { ...item, unread_count: 0 } : item)); }); }
   deleteConversation(request: CustomRequest): void {
     this.work.deleteRequest(request.id).subscribe(() => {
@@ -337,6 +396,23 @@ export class StudioComponent implements OnInit {
   private loadPreviews(messages: PortalMessage[]): void { for (const message of messages) for (const file of message.attachments) if (file.mime_type.startsWith('image/') && !this.previewObjects.has(file.id)) this.work.attachmentBlob(file).subscribe(blob => { const url = URL.createObjectURL(blob); this.previewObjects.set(file.id, url); this.previewUrls.update(items => ({ ...items, [file.id]: url })); }); }
   private scrollMessages(): void { setTimeout(() => { const element = document.getElementById('studio-message-stream'); if (element) element.scrollTop = element.scrollHeight; }); }
   private refreshDashboard(): void { this.studio.dashboard().subscribe(value => this.dashboard.set(value)); }
+  private refreshInbox(scrollForNew: boolean): void { this.work.requests().subscribe(requests => this.applyInboxRefresh(requests, scrollForNew)); }
+  private applyInboxRefresh(requests: CustomRequest[], scrollForNew: boolean): void {
+    this.requests.set(requests);
+    this.filteredRequests.set(requests);
+    const unread = requests.reduce((total, request) => total + request.unread_count, 0);
+    this.dashboard.update(stats => stats ? { ...stats, unread_messages: unread } : stats);
+    const active = this.activeRequest();
+    if (!active || this.view() !== 'inbox') return;
+    const updated = requests.find(request => request.id === active.id);
+    if (updated) this.activeRequest.set(updated);
+    this.work.messages(active.id).subscribe(messages => {
+      const hasNewMessages = messages.some(message => !this.messages().some(current => current.id === message.id));
+      this.messages.set(messages);
+      this.loadPreviews(messages);
+      if (scrollForNew && hasNewMessages) this.scrollMessages();
+    });
+  }
   private flash(message: string): void { this.notice.set(message); setTimeout(() => this.notice.set(''), 3000); }
   private readError(value: unknown): string { if (!value || typeof value !== 'object') return 'The product could not be saved.'; const first = Object.values(value as Record<string, unknown>)[0]; return Array.isArray(first) ? String(first[0]) : typeof first === 'object' ? JSON.stringify(first) : String(first); }
 }

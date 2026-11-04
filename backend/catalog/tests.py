@@ -63,3 +63,27 @@ class StudioCatalogTests(APITestCase):
                 self.assertEqual(len(response.data["download_files"]), 1)
                 self.assertEqual(response.data["file_formats"], ["PSD", "PNG"])
 
+    def test_designer_can_permanently_delete_product(self):
+        product = Product.objects.create(
+            category=self.category, title="Delete Me", slug="delete-me",
+            short_description="Temporary", description="Temporary product",
+            price=Decimal("10.00"), product_type=Product.ProductType.POSTER,
+            preview_url="",
+        )
+        self.client.force_authenticate(self.designer)
+        response = self.client.delete(f"/api/v1/catalog/studio/products/{product.pk}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Product.objects.filter(pk=product.pk).exists())
+
+    def test_customer_cannot_delete_product(self):
+        product = Product.objects.create(
+            category=self.category, title="Protected", slug="protected",
+            short_description="Protected", description="Protected product",
+            price=Decimal("10.00"), product_type=Product.ProductType.POSTER,
+            preview_url="",
+        )
+        self.client.force_authenticate(self.customer)
+        response = self.client.delete(f"/api/v1/catalog/studio/products/{product.pk}/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Product.objects.filter(pk=product.pk).exists())
+
