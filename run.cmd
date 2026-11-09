@@ -23,7 +23,7 @@ if not exist ".venv\Scripts\python.exe" (
     echo [1/5] Python environment is ready.
 )
 
-".venv\Scripts\python.exe" -c "import django, rest_framework, channels, daphne" >nul 2>&1
+".venv\Scripts\python.exe" -c "import django, rest_framework, channels, daphne, celery, redis" >nul 2>&1
 if errorlevel 1 (
     echo [2/5] Installing backend dependencies...
     ".venv\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
@@ -91,14 +91,16 @@ if /i "%~1"=="--check" (
 
 echo [5/5] Opening development servers...
 start "sameulshajid.art - Backend" cmd /k ".venv\Scripts\python.exe backend\manage.py runserver"
+start "sameulshajid.art - Celery" cmd /k "cd backend && ..\.venv\Scripts\python.exe -m celery -A config worker --loglevel=info --pool=solo"
 start "sameulshajid.art - Frontend" cmd /k "cd frontend && node_modules\node\bin\node.exe node_modules\@angular\cli\bin\ng.js serve --proxy-config proxy.conf.json"
 
 echo.
 echo Backend:  http://127.0.0.1:8000
 echo Website:  http://localhost:4200
 echo API Docs: http://127.0.0.1:8000/api/docs/
+echo Celery:   background worker ^(requires Redis on 127.0.0.1:6379^)
 echo.
-echo Two server windows were opened. Close them or press Ctrl+C in each to stop.
+echo Three server windows were opened. Close them or press Ctrl+C in each to stop.
 echo Waiting for the frontend before opening the browser...
 set /a FRONTEND_ATTEMPTS=0
 

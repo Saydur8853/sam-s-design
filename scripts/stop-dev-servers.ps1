@@ -31,6 +31,18 @@ foreach ($listener in $listeners) {
     }
 }
 
+Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -match '^python(w)?\.exe$' -and
+    [string]$_.CommandLine -match 'celery.*-A\s+config\s+worker' -and
+    (
+        [string]$_.ExecutablePath -like "$projectRoot*" -or
+        [string]$_.CommandLine -like "*$projectRoot*"
+    )
+} | ForEach-Object {
+    Stop-Process -Id $_.ProcessId -Force
+    [void]$stopped.Add([int]$_.ProcessId)
+}
+
 if ($stopped.Count -gt 0) {
     Write-Host "Stopped previous development server process(es): $($stopped -join ', ')"
 }

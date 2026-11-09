@@ -18,6 +18,8 @@ Double-click `run.cmd` in the project folder. It stops servers opened by the pre
 
 The launcher also adds the demo catalog on a new/empty database. Existing catalog data is never overwritten.
 
+Chat email notifications are delivered by a Celery worker. Start Redis on `127.0.0.1:6379` before using the launcher, or set `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` in `.env` to your managed Redis URLs. On Windows, the launcher uses Celery's `solo` pool.
+
 ### Backend (PowerShell)
 
 ```powershell
@@ -28,6 +30,13 @@ pip install -r backend\requirements.txt
 python backend\manage.py migrate
 python backend\manage.py createsuperuser
 python backend\manage.py runserver
+```
+
+In another terminal, with Redis running:
+
+```powershell
+Set-Location backend
+..\.venv\Scripts\python.exe -m celery -A config worker --loglevel=info --pool=solo
 ```
 
 API: http://localhost:8000/api/  

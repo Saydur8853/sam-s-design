@@ -1,7 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers
 from messaging.models import Conversation, Message
-from messaging.realtime import notify_new_message
+from messaging.notifications import schedule_new_message_notifications
 from .models import CustomDesignRequest
 
 
@@ -46,7 +46,7 @@ class CustomDesignRequestSerializer(serializers.ModelSerializer):
         custom_request = CustomDesignRequest.objects.create(customer=self.context["request"].user, **validated_data)
         conversation = Conversation.objects.create(request=custom_request)
         message = Message.objects.create(conversation=conversation, sender=custom_request.customer, body=initial_message)
-        transaction.on_commit(lambda: notify_new_message(message))
+        schedule_new_message_notifications(message)
         return custom_request
 
 
