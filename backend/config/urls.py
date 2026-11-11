@@ -4,8 +4,10 @@ from django.conf.urls.static import static
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from core.studio_views import admin_database_backup_view
+from core.views import sitemap_xml_view
 
 urlpatterns = [
+    path("sitemap.xml", sitemap_xml_view, name="sitemap-xml"),
     path("admin/db-backup/", admin_database_backup_view, name="admin-db-backup"),
     path("admin/", admin.site.urls),
     path("api/v1/", include("core.urls")),

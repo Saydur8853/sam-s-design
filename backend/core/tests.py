@@ -13,6 +13,39 @@ class HealthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "ok")
 
+    def test_sitemap_xml_is_public_and_lists_trust_pages(self):
+        response = self.client.get("/sitemap.xml")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.content.decode("utf-8")
+        self.assertIn("https://sameulshajid.art/privacy", body)
+        self.assertIn("https://sameulshajid.art/terms", body)
+        self.assertIn("https://sameulshajid.art/about", body)
+
+    def test_artwork_middleware_allows_pinterest_and_blocks_unknown_hotlinkers(self):
+        # Pinterest crawler and referer should be allowed on media paths
+        pin_bot = self.client.get(
+            "/media/product_previews/sample.png",
+            HTTP_USER_AGENT="Mozilla/5.0 (compatible; Pinterestbot/1.0; +http://www.pinterest.com/bot.html)",
+            HTTP_SEC_FETCH_SITE="cross-site",
+        )
+        self.assertNotEqual(pin_bot.status_code, status.HTTP_403_FORBIDDEN)
+
+        pin_ref = self.client.get(
+            "/media/product_previews/sample.png",
+            HTTP_REFERER="https://www.pinterest.com/pin/create/button/",
+            HTTP_SEC_FETCH_SITE="cross-site",
+        )
+        self.assertNotEqual(pin_ref.status_code, status.HTTP_403_FORBIDDEN)
+
+        # Untrusted external hotlinker should still be blocked with 403 Forbidden
+        hotlink = self.client.get(
+            "/media/product_previews/sample.png",
+            HTTP_REFERER="https://scraper-spam-example.xyz/steal",
+            HTTP_SEC_FETCH_SITE="cross-site",
+        )
+        self.assertEqual(hotlink.status_code, status.HTTP_403_FORBIDDEN)
+
+
 
 class StudioUserListTests(APITestCase):
     def setUp(self):

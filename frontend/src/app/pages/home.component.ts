@@ -7,6 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CatalogService, Category, Product } from '../core/catalog.service';
 import { CustomWorkService } from '../core/custom-work.service';
 import { ProtectedArtworkComponent } from '../core/protected-artwork.component';
+import { SeoService } from '../core/seo.service';
 
 @Component({
   standalone: true,
@@ -87,6 +88,7 @@ import { ProtectedArtworkComponent } from '../core/protected-artwork.component';
 export class HomeComponent implements OnInit, AfterViewInit {
   private readonly catalog = inject(CatalogService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly seo = inject(SeoService);
   readonly customWork = inject(CustomWorkService);
   readonly categories = signal<Category[]>([]);
   readonly products = signal<Product[]>([]);
@@ -119,6 +121,14 @@ export class HomeComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.seo.update({
+      title: 'sameulshajid.art — Independent Graphic Design Studio & Digital Art Store',
+      description:
+        'Original posters, print-ready artwork, social media templates, and custom graphic design crafted by independent designer Sameul Shajid.',
+      path: '/',
+      type: 'website',
+    });
+    this.seo.setJsonLd('product-json-ld', null);
     this.catalog.categories().subscribe(categories => this.categories.set(categories));
     this.loadProducts();
     this.searchControl.valueChanges.pipe(

@@ -108,10 +108,25 @@ import { CommerceService } from './core/commerce.service';
         <span>{{ securityToast() }}</span>
       </div>
     }
-    <footer>
-      <a class="brand footer-brand" routerLink="/"><span class="brand-logo-frame"><img class="brand-logo" src="/brand/samis-design-logo.jpg" alt="Sami's design logo" width="48" height="48"></span><span>sameulshajid<span class="accent">.art</span></span></a>
-      <p>Thoughtful design, ready when you are.</p>
-      <small>© 2026 sameulshajid.art. All rights reserved.</small>
+    <footer class="site-footer">
+      <div class="footer-brand-col">
+        <a class="brand footer-brand" routerLink="/">
+          <span class="brand-logo-frame"><img class="brand-logo" src="/brand/samis-design-logo.jpg" alt="Sami's design logo" width="48" height="48"></span>
+          <span>sameulshajid<span class="accent">.art</span></span>
+        </a>
+        <p>Independent graphic design studio by Sameul Shajid. Thoughtful digital artwork &amp; custom visual identity.</p>
+      </div>
+      <nav class="footer-links" aria-label="Studio policies and trust links">
+        <a routerLink="/about">About Studio</a>
+        <a routerLink="/privacy">Privacy Policy</a>
+        <a routerLink="/terms">Terms &amp; Licensing</a>
+        <a routerLink="/refunds">Refund Policy</a>
+        <a routerLink="/contact">Contact</a>
+      </nav>
+      <div class="footer-meta-col">
+        <a class="footer-support-mail" href="mailto:support@sameulshajid.art">support&#64;sameulshajid.art</a>
+        <small>© 2026 sameulshajid.art. All rights reserved.</small>
+      </div>
     </footer>
   `
 })

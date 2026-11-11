@@ -8,6 +8,7 @@ import { AuthService } from '../core/auth.service';
 import { CommerceService } from '../core/commerce.service';
 import { CustomWorkService } from '../core/custom-work.service';
 import { ProtectedArtworkComponent } from '../core/protected-artwork.component';
+import { SeoService } from '../core/seo.service';
 
 @Component({
   standalone: true,
@@ -122,6 +123,7 @@ export class ProductDetailComponent implements OnInit {
   private readonly customWork = inject(CustomWorkService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly seo = inject(SeoService);
 
   readonly product = signal<Product | null>(null);
   readonly loading = signal(true);
@@ -165,6 +167,39 @@ export class ProductDetailComponent implements OnInit {
       next: product => {
         this.product.set(product);
         this.loading.set(false);
+        this.seo.update({
+          title: `${product.title} — ${product.category.name} | sameulshajid.art`,
+          description: product.short_description || product.description,
+          path: `/shop/${product.slug}`,
+          image: product.preview_url,
+          type: 'product',
+          priceAmount: String(product.price),
+          priceCurrency: product.currency || 'USD',
+        });
+        this.seo.setJsonLd('product-json-ld', {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.title,
+          description: product.description || product.short_description,
+          image: [this.seo.resolveAbsoluteUrl(product.preview_url)],
+          sku: product.slug,
+          category: product.category.name,
+          brand: {
+            '@type': 'Brand',
+            name: 'sameulshajid.art',
+          },
+          offers: {
+            '@type': 'Offer',
+            url: `https://sameulshajid.art/shop/${product.slug}`,
+            priceCurrency: product.currency || 'USD',
+            price: String(product.price),
+            availability: 'https://schema.org/InStock',
+            seller: {
+              '@type': 'Organization',
+              name: 'sameulshajid.art',
+            },
+          },
+        });
         this.loadRelated(product.category.slug, product.slug, true);
       },
       error: () => {

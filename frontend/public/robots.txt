@@ -1,3 +1,17 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /cart
+Disallow: /checkout/
+Disallow: /payment-result
+Disallow: /profile
+Disallow: /sign-in
+Disallow: /register
+Disallow: /studio
+
+User-agent: Pinterestbot
+Allow: /
+Crawl-delay: 0.2
+
+Sitemap: https://sameulshajid.art/sitemap.xml
 
