@@ -1,5 +1,5 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { CatalogService, Category, Product } from '../core/catalog.service';
@@ -17,10 +17,28 @@ import { ProtectedArtworkComponent } from '../core/protected-artwork.component';
 
     <section class="catalog-toolbar" aria-label="Product filters">
       <button type="button" [class.selected]="!activeCategory()" (click)="selectCategory('')">All work</button>
-      @for (category of categories(); track category.id) {
+      @for (category of categories().slice(0, 5); track category.id) {
         <button type="button" [class.selected]="activeCategory() === category.slug" (click)="selectCategory(category.slug)">{{ category.name }}</button>
       }
+      @if (categories().length > 5) {
+        <button type="button" class="catalog-more-button" [class.selected]="isMoreCategorySelected()" [attr.aria-expanded]="moreCategoriesOpen()" aria-controls="more-categories-drawer" (click)="moreCategoriesOpen.set(true)">See more <span aria-hidden="true">+</span></button>
+      }
     </section>
+
+    @if (moreCategoriesOpen()) {
+      <div class="category-drawer-backdrop" (click)="closeMoreCategories()"></div>
+      <aside id="more-categories-drawer" class="category-drawer" role="dialog" aria-modal="true" aria-labelledby="more-categories-title">
+        <div class="category-drawer-heading">
+          <div><span class="eyebrow">Browse the collection</span><h2 id="more-categories-title">More categories</h2></div>
+          <button type="button" class="category-drawer-close" (click)="closeMoreCategories()" aria-label="Close categories">&times;</button>
+        </div>
+        <div class="category-drawer-list">
+          @for (category of categories().slice(5); track category.id) {
+            <button type="button" [class.selected]="activeCategory() === category.slug" (click)="selectCategory(category.slug)">{{ category.name }} <span aria-hidden="true">&#8599;</span></button>
+          }
+        </div>
+      </aside>
+    }
 
     <section class="product-section">
       <div class="catalog-summary"><span>{{ products().length }} designs</span><span>Instant digital download</span></div>
@@ -59,6 +77,7 @@ export class ShopComponent implements OnInit {
   readonly activeCategory = signal('');
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly moreCategoriesOpen = signal(false);
 
   ngOnInit(): void {
     this.catalog.categories().subscribe(categories => this.categories.set(categories));
@@ -67,7 +86,21 @@ export class ShopComponent implements OnInit {
 
   selectCategory(slug: string): void {
     this.activeCategory.set(slug);
+    this.closeMoreCategories();
     this.loadProducts();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closeMoreCategories();
+  }
+
+  isMoreCategorySelected(): boolean {
+    return this.categories().slice(5).some(category => category.slug === this.activeCategory());
+  }
+
+  closeMoreCategories(): void {
+    this.moreCategoriesOpen.set(false);
   }
 
   private loadProducts(): void {
