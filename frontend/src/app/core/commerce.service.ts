@@ -29,7 +29,7 @@ export class CommerceService {
   checkoutCart(): Observable<Order> { return this.http.post<Order>('/api/v1/orders/checkout-cart/', {}).pipe(tap(() => this.cart.set(null))); }
   buyNow(productId: number): Observable<Order> { return this.http.post<Order>('/api/v1/orders/buy-now/', { product_id: productId }); }
   order(orderId: string): Observable<Order> { return this.http.get<Order>(`/api/v1/orders/${orderId}/`); }
-  createPayment(orderId: string): Observable<{ transaction_id: string; checkout_url: string }> { return this.http.post<{ transaction_id: string; checkout_url: string }>('/api/v1/payments/demo/session/', { order_id: orderId }); }
+  createPayment(orderId: string): Observable<{ transaction_id: string; checkout_url: string }> { return this.http.post<{ transaction_id: string; checkout_url: string }>('/api/v1/payments/checkout/session/', { order_id: orderId }); }
   downloads(): Observable<Download[]> { return this.http.get<Download[]>('/api/v1/downloads/'); }
   downloadFile(item: Download, onComplete?: () => void): void {
     this.http.get(item.download_url, { responseType: 'blob' }).subscribe({

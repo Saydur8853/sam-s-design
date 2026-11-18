@@ -39,7 +39,7 @@ type LegalTab = 'about' | 'privacy' | 'terms' | 'refunds' | 'contact';
             <div><dt>Founder & Lead Designer</dt><dd>Sameul Shajid</dd></div>
             <div><dt>Website</dt><dd><a href="https://sameulshajid.art">https://sameulshajid.art</a></dd></div>
             <div><dt>Support Email</dt><dd><a href="mailto:support@sameulshajid.art">support&#64;sameulshajid.art</a></dd></div>
-            <div><dt>Payment Security</dt><dd>Encrypted checkout via Lemon Squeezy & Stripe</dd></div>
+            <div><dt>Payment Security</dt><dd>Encrypted checkout via Stripe</dd></div>
             <div><dt>Fulfillment</dt><dd>Instant digital download & private client portal</dd></div>
           </dl>
           <div class="legal-card-actions">
@@ -85,7 +85,7 @@ type LegalTab = 'about' | 'privacy' | 'terms' | 'refunds' | 'contact';
                 <h3>Information We Collect</h3>
                 <ul>
                   <li><strong>Account Details:</strong> Your name, email address, and optional profile photo when you register or sign in via Google OAuth.</li>
-                  <li><strong>Order & Transaction Metadata:</strong> Purchased items, order totals, and payment status. Full credit card or payment details are processed securely by our PCI-compliant payment partners (Lemon Squeezy / Stripe) and are never stored on our servers.</li>
+                  <li><strong>Order & Transaction Metadata:</strong> Purchased items, order totals, and payment status. Full credit card or payment details are processed securely by Stripe and are never stored on our servers.</li>
                   <li><strong>Project Messages:</strong> Briefs, messages, and reference files you voluntarily upload when requesting custom graphic design work.</li>
                 </ul>
                 <h3>How We Use Your Information</h3>

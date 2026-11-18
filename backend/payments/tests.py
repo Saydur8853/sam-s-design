@@ -1,4 +1,9 @@
+import hashlib
+import hmac
+import json
+import time
 from decimal import Decimal
+from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -37,4 +42,83 @@ class ReadyMadePurchaseFlowTests(APITestCase):
         self.client.force_authenticate(self.user)
         self.client.post("/api/v1/orders/buy-now/", {"product_id": self.product.id}, format="json")
         self.assertFalse(DownloadEntitlement.objects.filter(user=self.user).exists())
+
+    def test_valid_stripe_webhook_unlocks_the_matching_paid_order(self):
+        order = Order.objects.create(user=self.user, total=Decimal("42.00"), currency="USD")
+        transaction = PaymentTransaction.objects.create(
+            order=order,
+            provider="STRIPE",
+            amount=order.total,
+            currency=order.currency,
+            status=PaymentTransaction.Status.PENDING,
+        )
+        ProductFile.objects.create(product=self.product, display_name="Another.svg", private_path="products/another.svg")
+        order.items.create(product=self.product, product_title=self.product.title, unit_price=order.total, quantity=1)
+        payload = {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "client_reference_id": str(transaction.provider_reference),
+                    "payment_status": "paid",
+                    "amount_total": 4200,
+                    "currency": "usd",
+                    "metadata": {"order_id": str(order.id), "transaction_id": str(transaction.id)},
+                }
+            },
+        }
+        raw_body = json.dumps(payload).encode("utf-8")
+        secret = "whsec_test_secret"
+        timestamp = str(int(time.time()))
+        signature = hmac.new(secret.encode("utf-8"), timestamp.encode("utf-8") + b"." + raw_body, hashlib.sha256).hexdigest()
+
+        with patch.dict("os.environ", {"STRIPE_WEBHOOK_SECRET": secret}, clear=False):
+            response = self.client.post(
+                "/api/v1/payments/webhooks/stripe/",
+                data=raw_body,
+                content_type="application/json",
+                HTTP_STRIPE_SIGNATURE=f"t={timestamp},v1={signature}",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PAID)
+        self.assertEqual(DownloadEntitlement.objects.filter(user=self.user).count(), 2)
+
+    def test_stripe_webhook_rejects_an_amount_mismatch(self):
+        order = Order.objects.create(user=self.user, total=Decimal("42.00"), currency="USD")
+        transaction = PaymentTransaction.objects.create(
+            order=order,
+            provider="STRIPE",
+            amount=order.total,
+            currency=order.currency,
+            status=PaymentTransaction.Status.PENDING,
+        )
+        payload = {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "client_reference_id": str(transaction.provider_reference),
+                    "payment_status": "paid",
+                    "amount_total": 1,
+                    "currency": "usd",
+                    "metadata": {"order_id": str(order.id), "transaction_id": str(transaction.id)},
+                }
+            },
+        }
+        raw_body = json.dumps(payload).encode("utf-8")
+        secret = "whsec_test_secret"
+        timestamp = str(int(time.time()))
+        signature = hmac.new(secret.encode("utf-8"), timestamp.encode("utf-8") + b"." + raw_body, hashlib.sha256).hexdigest()
+
+        with patch.dict("os.environ", {"STRIPE_WEBHOOK_SECRET": secret}, clear=False):
+            response = self.client.post(
+                "/api/v1/payments/webhooks/stripe/",
+                data=raw_body,
+                content_type="application/json",
+                HTTP_STRIPE_SIGNATURE=f"t={timestamp},v1={signature}",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PENDING_PAYMENT)
 

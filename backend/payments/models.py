@@ -13,7 +13,7 @@ class PaymentTransaction(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="payments")
-    provider = models.CharField(max_length=30, default="DEMO")
+    provider = models.CharField(max_length=30, default="STRIPE")
     provider_reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3)
